@@ -1890,6 +1890,19 @@ class OAuthClient:
         self._log("步骤4: 检测到邮箱 OTP 验证")
 
         request_url = f"{self.oauth_issuer}/api/accounts/email-otp/validate"
+        sentinel_otp = build_sentinel_token(
+            self.session,
+            device_id,
+            flow="email_otp_validate",
+            user_agent=user_agent,
+            sec_ch_ua=sec_ch_ua,
+            impersonate=impersonate,
+        )
+        if sentinel_otp:
+            self._log("email_otp_validate: 已生成 sentinel token")
+        else:
+            self._log("email_otp_validate: 未生成 sentinel token（继续尝试）")
+
         headers_otp = self._headers(
             request_url,
             user_agent=user_agent,
@@ -1903,6 +1916,7 @@ class OAuthClient:
             fetch_site="same-origin",
             extra_headers={
                 "oai-device-id": device_id,
+                "openai-sentinel-token": sentinel_otp or "",
             },
         )
         headers_otp.update(generate_datadog_trace())
